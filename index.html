@@ -69,16 +69,35 @@ body {
   border-left-color: #00eaff;
 }
 
+.command-button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    background-color: #00eaff;
+    color: #111;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.command-button:hover {
+    background-color: #00aacc;
+}
 </style>
 </head>
 <body>
 <h2>received_data.txt Auto Fetch Viewer</h2>
 
+<br>
+
 <h3>◆ 生データ</h3>
 <div id="content">読み込み中...</div>
 
+<br>
+
 <h3>◆ 抽出データ</h3>
 <div id="parsed">解析待ち...</div>
+
+<br>
 
 <h3>◆ デバイス距離可視化</h3>
 <div id="distanceBox">
@@ -87,26 +106,67 @@ body {
   <div id="circle2">2</div>
 </div>
 
+<br>
+
+<h3>◆ コマンド送信</h3>
+<button class="command-button" onclick="sendCommand('RESTART_DEVICE')">デバイス再起動</button>
+<button class="command-button" onclick="sendCommand('SET_MODE_A')">モードAに設定</button>
+<p style="margin-top: 10px;">コマンドを送信しました: <span id="commandStatus" style="color: yellow;">なし</span></p>
+
+
 <script>
+// --- コマンド送信機能 ---
+async function sendCommand(command) {
+    const url = `http://${window.location.hostname}:8888/command`;  // 自動化(これ結構いいアイディアだと思う)
+    document.getElementById("commandStatus").innerText = `送信中... (${command})`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            // Content-Type ヘッダーは、Cサーバーがボディ長を正確にパースするために重要
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+            body: command // 送りたいコマンド文字列
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        document.getElementById("commandStatus").innerText = `成功: ${command}`;
+        console.log(`Command sent successfully: ${command}`);
+
+    } catch (error) {
+        document.getElementById("commandStatus").innerText = `失敗: ${command} (${error.message})`;
+        console.error('Failed to send command:', error);
+    }
+}
+
+
+// --- 既存のデータ読み込み・可視化機能 ---
 async function loadText() {
   let rssi = "N/A";
   try {
+    // python -m http.server のポートに合わせて URL を確認してください
     const response = await fetch("received_data.txt?nocache=" + Date.now());
     if (!response.ok) throw new Error();
 
     const text = await response.text();
     document.getElementById("content").innerText = text;
 
-    // rssi と found を抽出
+    // 抽出
     const rssiMatch = text.match(/rssi:([-\d]+)/);
     const foundMatch = text.match(/found:(\d+)/);
+    const swingMatch = text.match(/swing:([-\d]+)/);
 
     rssi = rssiMatch ? rssiMatch[1] : "N/A";
     const found = foundMatch ? foundMatch[1] : "N/A";
+    const swing = swingMatch ? swingMatch[1] : "N/A";
 
     document.getElementById("parsed").innerHTML =
       `信号強度 = <b>${rssi}</b><br><br>` +
-      `デバイス発見 = <b>${found}</b>`;
+      `デバイス発見 = <b>${found}</b><br><br>` +
+      `腕振り状態 = <b>${swing}</b>`;
   } catch {
     document.getElementById("content").innerText = "⚠ received_data.txt を読み込めません";
     document.getElementById("parsed").innerText = "⚠ データ解析不可";
