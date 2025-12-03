@@ -1,6 +1,6 @@
-# Creative Design Group 5 - IoT Monitoring & Remote Control System
+# 創造設計 5班 - IoT Monitoring & Remote Control System
 
-このリポジトリは、IoTデバイスや外部システムから受信したデータの可視化・遠隔コマンド管理を目的としたチーム開発プロジェクトです。
+このリポジトリは、IoTデバイスや外部システムから受信したデータの可視化・遠隔コマンド管理を目的としたプロジェクトです。
 
 ## 概要
 
@@ -76,7 +76,7 @@ HTTPコマンドリクエスト ← コマンド送信ボタン（index.html）
 
 ## 開発メンバー
 
-- mizuki20070314 他 （GitHub IDを追記）
+- mizuki20070314 他 （GitHub IDを追記する予定）
 
 ## ライセンス
 
@@ -84,4 +84,4 @@ MIT License
 
 ---
 
-ご質問・追加希望があればIssueやPRでどうぞ！
+ご質問・追加希望があればIssueやPRでどうぞ
