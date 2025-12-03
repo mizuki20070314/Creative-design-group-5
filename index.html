@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>received_data.txt Live Viewer</title>
+<style>
+body {
+  font-family: monospace;
+  background: #222;
+  color: #eee;
+  padding: 20px;
+}
+#content, #parsed {
+  white-space: pre-wrap;
+  padding: 15px;
+  border: 1px solid #555;
+  background: #111;
+  border-radius: 8px;
+  font-size: 18px;
+  margin-top: 10px;
+}
+#parsed b {
+  color: #00eaff;
+}
+#distanceBox {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  margin-top: 20px;
+  background: #222;
+}
+#circle1, #circle2 {
+  width: 70px;
+  height: 70px;
+  border: 3px solid white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 100px;
+  font-size: 32px;
+}
+#arrow {
+  position: absolute;
+  top: 133px; /* 丸の中心に合わせて微調整 */
+  height: 4px; /* 線の太さ */
+  background: #00eaff; /* 線の色 */
+}
+
+/* 両端に矢印マークを追加 */
+#arrow::before, #arrow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 12px solid transparent;
+}
+
+/* 左端の矢印（▶ を CSS 三角形で生成） */
+#arrow::before {
+  left: -20px;
+  border-right-color: #00eaff;
+}
+
+/* 右端の矢印 */
+#arrow::after {
+  right: -20px;
+  border-left-color: #00eaff;
+}
+
+</style>
+</head>
+<body>
+<h2>received_data.txt Auto Fetch Viewer</h2>
+
+<h3>◆ 生データ</h3>
+<div id="content">読み込み中...</div>
+
+<h3>◆ 抽出データ</h3>
+<div id="parsed">解析待ち...</div>
+
+<h3>◆ デバイス距離可視化</h3>
+<div id="distanceBox">
+  <div id="circle1">1</div>
+  <div id="arrow"></div>
+  <div id="circle2">2</div>
+</div>
+
+<script>
+async function loadText() {
+  let rssi = "N/A";
+  try {
+    const response = await fetch("received_data.txt?nocache=" + Date.now());
+    if (!response.ok) throw new Error();
+
+    const text = await response.text();
+    document.getElementById("content").innerText = text;
+
+    // rssi と found を抽出
+    const rssiMatch = text.match(/rssi:([-\d]+)/);
+    const foundMatch = text.match(/found:(\d+)/);
+
+    rssi = rssiMatch ? rssiMatch[1] : "N/A";
+    const found = foundMatch ? foundMatch[1] : "N/A";
+
+    document.getElementById("parsed").innerHTML =
+      `信号強度 = <b>${rssi}</b><br><br>` +
+      `デバイス発見 = <b>${found}</b>`;
+  } catch {
+    document.getElementById("content").innerText = "⚠ received_data.txt を読み込めません";
+    document.getElementById("parsed").innerText = "⚠ データ解析不可";
+  }
+
+  // --- RSSIで右丸の距離を変化 ---
+  if (rssi !== "N/A") {
+    const rssiVal = parseInt(rssi);
+    const rssiClipped = Math.max(Math.min(rssiVal, 0), -127);
+    const ratio = Math.abs(rssiClipped) / 127; // 0:近い / 1:遠い
+
+    const box = document.getElementById("distanceBox");
+    const boxWidth = box.clientWidth;
+    const circleRadius = 35;
+
+    // 左丸は左端固定
+    const leftX = circleRadius;
+
+    // 右丸が左丸と重ならないよう最小位置を左丸の右端 + ?px
+    const minRightX = leftX + circleRadius*2 + 40;
+    const maxRightX = boxWidth - circleRadius - 90;
+
+    // ratio=0で右丸は最小位置、ratio=1で右丸は右端
+    const rightX = minRightX + ratio * (maxRightX - minRightX);
+
+    document.getElementById("circle1").style.left = `${leftX}px`;
+    document.getElementById("circle2").style.left = `${rightX}px`;
+
+
+    const arrow = document.getElementById("arrow");
+    const arrowStart = leftX + circleRadius*2 + 30;
+    const arrowEnd = rightX - circleRadius + 10;
+    arrow.style.left = `${arrowStart}px`;
+    arrow.style.width = `${arrowEnd - arrowStart}px`;
+  }
+}
+
+loadText();
+setInterval(loadText, 100);
+</script>
+</body>
+</html>
