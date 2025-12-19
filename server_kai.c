@@ -52,7 +52,7 @@ int main(void) {
     fd_set readfds;
     int maxfd;
     char prev_cmd = '\0';
-    const char *cmd_path = "c:\\\\cygwin64\\\\home\\\\USER\\\\Creative-design-group-5\\\\command.txt";
+    const char *cmd_path = "c:\\\\cygwin64\\\\home\\\\USER\\\\Creative-design-group-5\\\\command.txt";  // 好きに変えてね
 
     signal(SIGINT, handle_sigint);
 
