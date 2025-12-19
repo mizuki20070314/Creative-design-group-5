@@ -82,10 +82,6 @@ HTTPコマンドリクエスト ← コマンド送信ボタン（index.html）
 - nishi072006 西澤 凌介
 - hira355 平松 鼓太郎
 
-## ライセンス
 
-MIT License
-
----
 
 ご質問・追加希望があればIssueやPRでどうぞ
