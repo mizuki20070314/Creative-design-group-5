@@ -36,6 +36,18 @@ static void parse_json_data(const char *data, int *swing, int *rssi, int *found)
     }
 }
 
+// 追加関数: command.txt の先頭有効文字を読み取って返す ('A'/'B' など)、読み取れなければ '\0'
+static char read_command_char(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (!f) return '\0';
+    int c = fgetc(f);
+    // skip initial CR/LF
+    while (c != EOF && (c == '\n' || c == '\r')) c = fgetc(f);
+    fclose(f);
+    if (c == EOF) return '\0';
+    return (char)c;
+}
+
 int main(void) {
     struct sockaddr_in srv_addr;
     int yes = 1;
@@ -72,6 +84,10 @@ int main(void) {
     }
 
     printf("Listening on 0.0.0.0:%d\n", LISTEN_PORT);
+
+    // 前回の command.txt の値を保持
+    char prev_cmd = '\0';
+    const char *cmd_path = "c:\\\\cygwin64\\\\home\\\\USER\\\\Creative-design-group-5\\\\command.txt";
 
     for (;;) {
         struct sockaddr_in cli_addr;
@@ -113,15 +129,30 @@ int main(void) {
                     int swing = 0, rssi = 0, found = 0;
                     parse_json_data(line_start, &swing, &rssi, &found);
 
-                    // 追加部分: 条件判定
+                    // 追加部分: command.txt の読み取りと変化検出
+                    char cur_cmd = read_command_char(cmd_path);
                     int send_value = -1;
-                    if (found && rssi > -30) {
-                        send_value = 0;
-                    } else if(found && rssi > -60) {
-                        send_value = 1;
-                    } else if(found && rssi > -128) {
-                        send_value = 2;
+                    if (cur_cmd != '0' && prev_cmd == '0') {
+                        // 値変化があれば優先して 3(A) または 4(B) を返す
+                        if (cur_cmd == 'A') {
+                            send_value = 4;
+                        } else if (cur_cmd == 'B') {
+                            send_value = 5;
+                        }
+                        printf("command.txt changed: '%c' -> '%c', override send_value=%d\n", prev_cmd, cur_cmd, send_value);
+                    } else {
+                        // 既存の判定ロジック
+                        if (found && rssi > -40) {
+                            send_value = 1;
+                        } else if (found && rssi > -53) {
+                            send_value = 2;
+                        } else if (found && rssi > -128) {
+                            send_value = 3;
+                        }
                     }
+                    // prev_cmd を更新（読み取れた場合のみ）
+                    if (cur_cmd != '\0') prev_cmd = cur_cmd;
+
                     char resbuf[8];
                     snprintf(resbuf, sizeof(resbuf), "%d\n", send_value);
 

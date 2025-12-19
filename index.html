@@ -109,52 +109,61 @@ body {
 <br>
 
 <h3>◆ コマンド送信</h3>
-<button class="command-button" onclick="sendCommand('TEST_A')">テストA</button>
-<button class="command-button" onclick="sendCommand('TEST_B')">テストB</button>
+<button class="command-button" onclick="sendCommand('A')">LED消灯</button>
+<button class="command-button" onclick="sendCommand('B')">腕振り時/常時</button>
 <p style="margin-top: 10px;">コマンドを送信しました: <span id="commandStatus" style="color: yellow;">なし</span></p>
 
 
 <script>
+let lastManualSend = 0;
+const MANUAL_TIMEOUT = 3000; // 適度な値を探すこと!!
+
 // --- コマンド送信機能 ---
-async function sendCommand(command) {
-    const url = `http://${window.location.hostname}:8888/command`;  // 自動化(これ結構いいアイディアだと思う)
-    document.getElementById("commandStatus").innerText = `送信中... (${command})`;
+async function sendCommand(command = '') {
+    const url = `http://${window.location.hostname}:8888/command`;
+    const isManual = command !== '';
+    if (isManual) lastManualSend = Date.now();
+
+    document.getElementById("commandStatus").innerText = `送信中... (${command === '' ? '自動' : command})`;
 
     try {
         const response = await fetch(url, {
             method: 'POST',
-            // Content-Type ヘッダーは、Cサーバーがボディ長を正確にパースするために重要
             headers: {
                 'Content-Type': 'text/plain',
             },
-            body: command // 送りたいコマンド文字列
+            body: command
         });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        document.getElementById("commandStatus").innerText = `成功: ${command}`;
-        console.log(`Command sent successfully: ${command}`);
+        document.getElementById("commandStatus").innerText = `成功: ${command === '' ? '自動(空)' : command}`;
+        console.log(`Command sent successfully: "${command}"`);
 
     } catch (error) {
-        document.getElementById("commandStatus").innerText = `失敗: ${command} (${error.message})`;
+        document.getElementById("commandStatus").innerText = `失敗: ${command === '' ? '自動(空)' : command} (${error.message})`;
         console.error('Failed to send command:', error);
     }
 }
 
+// 自動送信タイマー：直近の手動送信から一定時間経過していれば空コマンドを送る
+setInterval(() => {
+    if (Date.now() - lastManualSend > MANUAL_TIMEOUT) {
+        sendCommand('0');
+    }
+}, 1000);
 
 // --- 既存のデータ読み込み・可視化機能 ---
 async function loadText() {
   let rssi = "N/A";
   try {
-    // python -m http.server のポートに合わせて URL を確認してください
     const response = await fetch("received_data.txt?nocache=" + Date.now());
     if (!response.ok) throw new Error();
 
     const text = await response.text();
     document.getElementById("content").innerText = text;
 
-    // 抽出
     const rssiMatch = text.match(/rssi:([-\d]+)/);
     const foundMatch = text.match(/found:(\d+)/);
     const swingMatch = text.match(/swing:([-\d]+)/);
@@ -172,29 +181,23 @@ async function loadText() {
     document.getElementById("parsed").innerText = "⚠ データ解析不可";
   }
 
-  // --- RSSIで右丸の距離を変化 ---
   if (rssi !== "N/A") {
     const rssiVal = parseInt(rssi);
     const rssiClipped = Math.max(Math.min(rssiVal, 0), -127);
-    const ratio = Math.abs(rssiClipped) / 127; // 0:近い / 1:遠い
+    const ratio = Math.abs(rssiClipped) / 127;
 
     const box = document.getElementById("distanceBox");
     const boxWidth = box.clientWidth;
     const circleRadius = 35;
 
-    // 左丸は左端固定
     const leftX = circleRadius;
-
-    // 右丸が左丸と重ならないよう最小位置を左丸の右端 + ?px
     const minRightX = leftX + circleRadius*2 + 40;
     const maxRightX = boxWidth - circleRadius - 90;
 
-    // ratio=0で右丸は最小位置、ratio=1で右丸は右端
     const rightX = minRightX + ratio * (maxRightX - minRightX);
 
     document.getElementById("circle1").style.left = `${leftX}px`;
     document.getElementById("circle2").style.left = `${rightX}px`;
-
 
     const arrow = document.getElementById("arrow");
     const arrowStart = leftX + circleRadius*2 + 30;
