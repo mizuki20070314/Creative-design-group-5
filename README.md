@@ -75,7 +75,12 @@ HTTPコマンドリクエスト ← コマンド送信ボタン（index.html）
 
 ## 開発メンバー
 
-- mizuki20070314 他 （GitHub IDを追記する予定）
+- mizuki20070314(s22123-create) 薗田瑞希
+- moyashi2048 風間 悠太
+- know-amb 栗原 実珠
+- aka2357 大津 亜果莉
+- nishi072006 西澤 凌介
+- hira355 平松 鼓太郎
 
 ## ライセンス
 
